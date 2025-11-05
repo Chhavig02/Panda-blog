@@ -1,0 +1,156 @@
+version: '3.8'
+
+services:
+  # MongoDB Instances
+  mongodb-user:
+    image: mongo:7
+    container_name: mongodb-user
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb-user-data:/data/db
+    networks:
+      - panda-network
+
+  mongodb-post:
+    image: mongo:7
+    container_name: mongodb-post
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb-post-data:/data/db
+    networks:
+      - panda-network
+
+  mongodb-comment:
+    image: mongo:7
+    container_name: mongodb-comment
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb-comment-data:/data/db
+    networks:
+      - panda-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "5001:5001"
+    environment:
+      PORT: 5001
+      MONGODB_URI: mongodb+srv://chhavi02:(Chhavi19)@cluster0.s7w0e2d.mongodb.net/panda-blog-users?retryWrites=true&w=majority
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      NODE_ENV: production
+    depends_on:
+      - mongodb-user
+    networks:
+      - panda-network
+    restart: unless-stopped
+
+  # Post Service
+  post-service:
+    build:
+      context: ./services/post-service
+      dockerfile: Dockerfile
+    container_name: post-service
+    ports:
+      - "5002:5002"
+    environment:
+      PORT: 5002
+      MONGODB_URI: mongodb+srv://chhavi02:(Chhavi19)@cluster0.s7w0e2d.mongodb.net/panda-blog-posts?retryWrites=true&w=majority
+      USER_SERVICE_URL: http://user-service:5001
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      NODE_ENV: production
+    depends_on:
+      - mongodb-post
+      - user-service
+    networks:
+      - panda-network
+    restart: unless-stopped
+
+  # Comment Service
+  comment-service:
+    build:
+      context: ./services/comment-service
+      dockerfile: Dockerfile
+    container_name: comment-service
+    ports:
+      - "5003:5003"
+    environment:
+      PORT: 5003
+      MONGODB_URI: mongodb+srv://chhavi02:(Chhavi19)@cluster0.s7w0e2d.mongodb.net/panda-blog-comments?retryWrites=true&w=majority
+      USER_SERVICE_URL: http://user-service:5001
+      POST_SERVICE_URL: http://post-service:5002
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      NODE_ENV: production
+    depends_on:
+      - mongodb-comment
+      - user-service
+      - post-service
+    networks:
+      - panda-network
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      USER_SERVICE_URL: http://user-service:5001
+      POST_SERVICE_URL: http://post-service:5002
+      COMMENT_SERVICE_URL: http://comment-service:5003
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      NODE_ENV: production
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      - user-service
+      - post-service
+      - comment-service
+    networks:
+      - panda-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000
+      NODE_ENV: production
+    depends_on:
+      - api-gateway
+    networks:
+      - panda-network
+    restart: unless-stopped
+
+networks:
+  panda-network:
+    driver: bridge
+
+volumes:
+  mongodb-user-data:
+  mongodb-post-data:
+  mongodb-comment-data:
+

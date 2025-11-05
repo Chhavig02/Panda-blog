@@ -1,0 +1,28 @@
+{
+  "name": "panda-blog-platform",
+  "version": "1.0.0",
+  "description": "Microservices-based blogging platform with panda theme",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:gateway\" \"npm run dev:user\" \"npm run dev:post\" \"npm run dev:comment\" \"npm run dev:frontend\"",
+    "dev:gateway": "cd services/gateway && npm run dev",
+    "dev:user": "cd services/user-service && npm run dev",
+    "dev:post": "cd services/post-service && npm run dev",
+    "dev:comment": "cd services/comment-service && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:services && npm run build:frontend",
+    "build:services": "npm run build:gateway && npm run build:user && npm run build:post && npm run build:comment",
+    "build:gateway": "cd services/gateway && npm run build",
+    "build:user": "cd services/user-service && npm run build",
+    "build:post": "cd services/post-service && npm run build",
+    "build:comment": "cd services/comment-service && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "seed": "node scripts/seed.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
