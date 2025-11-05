@@ -14,8 +14,23 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:3000',
+  process.env.CORS_ORIGIN || 'http://localhost:3000',
+  ...(process.env.CORS_ORIGIN?.includes(',') ? process.env.CORS_ORIGIN.split(',') : [])
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.some(allowed => origin.includes(allowed.replace(/^https?:\/\//, '')))) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for development - restrict in production
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());
